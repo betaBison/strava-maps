@@ -12,19 +12,21 @@ import shutil
 import configparser
 
 import fitparse
+import matplotlib.pyplot as plt
 from gpx_converter import Converter
 
+from lib.plotter import Plotter
 from lib.tcx_convert import write_tcx_to_csv
 from lib.fit_convert import write_fit_to_csv
 
-def main( ):
+def main():
 
     # read configuration file
     config = configparser.ConfigParser()
     file_dir = os.path.dirname(os.path.realpath(__file__))
     config_path = os.path.join(file_dir,"config","settings.ini")
     config.read(config_path)
-    data_path = config["data"]["data_path"]
+    data_path = config["strava"]["data_path"]
     activities_path = os.path.join(data_path,"activities")
 
     # extract files if necessary
@@ -42,6 +44,10 @@ def main( ):
     # convert tcx files to csv
     print("Converting tcx files to csv...")
     tcx_to_csv(activities_path)
+
+    # plot maps
+    print("Plotting maps...")
+    plot_maps(activities_path)
 
 
 def gz_extract(directory):
@@ -132,6 +138,20 @@ def tcx_to_csv(dir):
         outpath = os.path.join(dir, file.rsplit('.',1)[0] + ".csv")
         write_tcx_to_csv(filepath, outpath)
         os.remove(filepath)
+
+def plot_maps(dir):
+    """Map activity data into maps.
+
+    Parameters
+    ----------
+    dir : string
+        Directory path in which file should be extracted.
+
+    """
+    p = Plotter(dir)
+    # p.stanford()
+    p.bay_area()
+    plt.show()
 
 if __name__ == "__main__":
     main()

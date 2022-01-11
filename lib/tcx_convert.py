@@ -18,6 +18,17 @@ UTC = pytz.UTC
 
 # takes in a TCX file and outputs a CSV file
 def write_tcx_to_csv(input, output):
+    """Converts .tcx files to .csv files.
+
+    Parameters
+    ----------
+    input : string
+        Input filepath.
+    output : string
+        Output filepath.
+
+    """
+    
     strip_whitespace(input)
 
     tree = et.parse(input)
@@ -78,6 +89,19 @@ def write_tcx_to_csv(input, output):
 
 
 def strip_whitespace(filename):
+    """Strips whitespace from the file.
+
+    For some reason, my .tcx files had some extra whitespace in the
+    beginning of the files that caused errors in the tcx conversion, so
+    before converting, this removed the whitespace at the beginning of
+    the file.
+
+    Parameters
+    ----------
+    filename : string
+        Name of the file that should be stripped of whitespace.
+
+    """
     file = open(filename, "r")
     contents = file.read()
     new_contents = contents.strip()

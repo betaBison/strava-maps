@@ -24,7 +24,7 @@ label_names = ["time", "latitude", "longitude", "altitude"]
 UTC = pytz.UTC
 
 def main():
-    fitfile = fitparse.FitFile("797720091.fit",
+    fitfile = fitparse.FitFile("XXX.fit",
         data_processor=fitparse.StandardUnitsDataProcessor())
 
     print('converting')
@@ -33,6 +33,19 @@ def main():
 
 
 def write_fit_to_csv(fitfile, output_file='test_output.csv'):
+    """Convert .fit files to .csv files.
+
+    Parameters
+    ----------
+    fitfile : fitfile
+        The fitfile to be translated.
+    output_file : string
+        The name of the output csv file.
+
+    """
+
+
+
     messages = fitfile.messages
     data = []
     for m in messages:
