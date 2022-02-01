@@ -51,3 +51,5 @@ downloaded.
 changed from `medium` to `large` at the bottom of the file. This file
 will combine the images, save the composite into the `data/` directory,
 and then show you the composite image.
+As a note of caution: the large version is a 5.6GB file and needs about 20GB of 
+memory on your machine to create.
