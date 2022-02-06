@@ -17,11 +17,13 @@ import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
 import matplotlib.pyplot as plt
+from matplotlib.path import Path
 import matplotlib.patches as patches
 from matplotlib.collections import LineCollection
 
 # import specific parameters
-from config.contours import Tristan
+# from config.contours import Tristan as Params
+from config.contours import Derek as Params
 
 class Plotter():
     def __init__(self, dir):
@@ -34,7 +36,7 @@ class Plotter():
 
         """
 
-        self.P = Tristan()
+        self.P = Params()
 
         file_dir = os.path.dirname(os.path.realpath(__file__))
         self.repo_dir = os.path.join(file_dir, "..")
@@ -177,14 +179,21 @@ class Plotter():
                     bbox_inches="tight")
         plt.close(fig)
 
-    def bay_area_laser_contour_truth(self):
-        """Laser contours for the entire Bay area."""
+    def bay_area_laser_contours(self):
+        """Laser contours for the entire Bay area.
+
+        """
         levels = self.P.levels
         level_indexes = [3, 2, 1]
-        self.df = self.df[1000:1400]
+        # self.df = self.df[1000:1400]
 
         for dd, df in enumerate(self.df):
             df["color"] = "orange"
+
+        proof_fig = plt.figure(figsize=self.P.figsize)
+        proof_ax = plt.subplot(1,1,1)
+
+        contoured_paths = []
 
         for level_index in level_indexes:
         # for level_index in range(1):
@@ -216,6 +225,22 @@ class Plotter():
             filtered_paths = []
             collection = CS.collections[level_index]
             for path in collection.get_paths():
+                if len(path.vertices) > 500 and level_index == 1:
+                    # add extra vertices for plotting for largest path
+                    new_vertices = path.vertices.copy()
+                    top_left = new_vertices[0:1,:]
+                    top_left[0,1] += 1
+                    bottom_right = new_vertices[-1,:].reshape(1, -1)
+                    bottom_right[0,0] += 1
+                    top_right = np.array([[bottom_right[0,0], top_left[0,1]]])
+                    new_vertices = np.insert(new_vertices, [0],
+                                             top_left, axis = 0)
+                    new_vertices = np.append(new_vertices,
+                                             bottom_right, axis = 0)
+                    new_vertices = np.append(new_vertices,
+                                             top_right, axis = 0)
+                    new_path = Path(new_vertices)
+                    path = new_path
                 if len(path.vertices) < self.P.contour_min:
                     ignore = True
                     if level_index == 1:
@@ -224,18 +249,17 @@ class Plotter():
                         for ww in range(white_list.shape[0]):
                             diff = self.haversine(center_location, white_list[ww])
                             if diff < 5000:
-                                print(diff)
-                                print(center_location)
-                                print(ww)
-                                print(white_list[ww])
                                 ignore = False
                                 break
                     if ignore:
                         continue
+
+
                 filtered_paths.append(path)
-                patch = patches.PathPatch(path, edgecolor='k', facecolor="w", lw=2)
+                patch = patches.PathPatch(path, edgecolor='k', facecolor='w', lw=2)
                 ax.add_patch(patch)
 
+            contoured_paths.insert(0,filtered_paths)
 
             # percent10 = int(len(self.df)/10.)
             # for dd, df in enumerate(self.df):
@@ -297,6 +321,100 @@ class Plotter():
                         dpi=300.,
                         bbox_inches="tight")
             plt.close(fig)
+
+        print("Done with all contour vectors.\n")
+
+
+        ################################################################
+        # visual contour proof
+        ################################################################
+        background_vertices = np.array([[self.P.xlim[0],self.P.ylim[0]],
+                                        [self.P.xlim[0],self.P.ylim[1]],
+                                        [self.P.xlim[1],self.P.ylim[1]],
+                                        [self.P.xlim[1],self.P.ylim[0]],
+                                        ])
+        background_path = Path(background_vertices)
+        background = patches.PathPatch(background_path, edgecolor='k',
+                                        facecolor=self.P.colors[0], lw=2)
+        proof_ax.add_patch(background)
+
+        for level_index in range(3):
+            """Add new paths."""
+
+            hole_patches = []
+            for pp, path in enumerate(contoured_paths[level_index]):
+
+                for cp, check_path in enumerate(contoured_paths[level_index]):
+                    contained_measure = sum(check_path.contains_points(path.vertices))/float(path.vertices.shape[0])
+                    # print(check_path.contains_points(path.vertices))
+                    # print(contained_measure)
+                    if contained_measure > self.P.contained_measure and pp != cp:
+                        color = self.P.colors[level_index]
+                        #
+                        # print(pp,cp,"hey",color,level_index)
+                        # ax_new = plt.gca()
+                        # # proof fig
+                        # ax_new.set_xlim(self.P.xlim)
+                        # ax_new.set_ylim(self.P.ylim)
+                        #
+                        # # remove axis ticks and labels
+                        # ax_new.axes.xaxis.set_visible(False)
+                        # ax_new.axes.yaxis.set_visible(False)
+                        new_patch = patches.PathPatch(path, edgecolor="k",
+                                                        facecolor=color, lw=0)
+                        hole_patches.append(new_patch)
+                        # ax_new.add_patch(new_patch)
+                        # plt.show()
+
+                    else:
+                        color = self.P.colors[level_index + 1]
+
+                    proof_patch = patches.PathPatch(path, edgecolor="k",
+                                                    facecolor = color, lw=0)
+                    proof_ax.add_patch(proof_patch)
+
+
+            for hole_patch in hole_patches:
+                proof_ax.add_patch(hole_patch)
+
+            print("added proof contours for level",level_index+1,"/3")
+
+
+        percent10 = int(len(self.df)/10.)
+        for dd, df in enumerate(self.df):
+            # print("dd:",dd,"/",len(self.df))
+            if (dd+1) % percent10 == 0:
+                print(math.ceil(100*float(dd)/len(self.df)),"% of activities plotted")
+
+            if len(df) == 0:
+                continue
+
+            if len(df) > self.P.path_min:
+                plt.plot(df["longitude"].to_numpy().reshape(-1,1),
+                         df["latitude"].to_numpy().reshape(-1,1),
+                         "k",linewidth = 0.5)
+            # else:
+            #     plt.plot(df["longitude"].to_numpy().reshape(-1,1),
+            #     df["latitude"].to_numpy().reshape(-1,1),
+            #     "b",linewidth = 0.3)
+
+
+        # proof fig
+        proof_ax.set_xlim(self.P.xlim)
+        proof_ax.set_ylim(self.P.ylim)
+
+        # remove axis ticks and labels
+        proof_ax = plt.gca()
+        proof_ax.axes.xaxis.set_visible(False)
+        proof_ax.axes.yaxis.set_visible(False)
+
+        proof_fig.savefig(os.path.join(self.repo_dir,"plots",
+                    self.P.name + "-contour-proof-" \
+                  + self.plot_time + ".png"),
+                    format="png",
+                    dpi=300.,
+                    bbox_inches="tight")
+        plt.close(proof_fig)
 
     def haversine(self, coord1, coord2):
         """

@@ -152,7 +152,7 @@ def plot_maps(dir):
     # p.stanford()
     # p.bay_area()
     # p.bay_area_laser_elevation_truth()
-    p.bay_area_laser_contour_truth()
+    p.bay_area_laser_contours()
     plt.show()
 
 if __name__ == "__main__":
