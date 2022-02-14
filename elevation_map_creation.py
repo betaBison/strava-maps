@@ -6,7 +6,6 @@ __authors__ = "D. Knowles"
 __date__ = "27 Dec 2021"
 
 import os
-import configparser
 
 import numpy as np
 from PIL import Image
@@ -16,6 +15,9 @@ import matplotlib.pyplot as plt
 SIZES = {"small" : (72, 108),
          "medium" : (720, 1080),
          "large" : (7200, 10800)}
+# absolute path of the directory which includes the USGS elevation TIFFs
+# e.g. DATA_PATH = /home/user/data/usgs/
+DATA_PATH = "/home/derek/datasets/usgs/"
 
 def main(img_data, size = "small"):
     """Combine topography maps and save as file.
@@ -32,11 +34,8 @@ def main(img_data, size = "small"):
     """
 
     # read configuration file
-    config = configparser.ConfigParser()
+    data_path = DATA_PATH
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(file_dir,"config","settings.ini")
-    config.read(config_path)
-    data_path = config["usgs"]["data_path"]
 
     # top row
     im00 = Image.open(os.path.join(data_path, img_data[(0,0)]["filename"]))
@@ -77,7 +76,7 @@ def main(img_data, size = "small"):
 
     # save the topography
     output_path = os.path.join(file_dir, "data",
-                            "topography_" + size + ".npy")
+                               "SF_bay_topo_" + size + ".npy")
     np.save(output_path, ar_full)
 
     plt.figure()

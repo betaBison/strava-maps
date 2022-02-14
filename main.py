@@ -9,7 +9,6 @@ import os
 import math
 import gzip
 import shutil
-import configparser
 
 import fitparse
 import matplotlib.pyplot as plt
@@ -18,16 +17,13 @@ from gpx_converter import Converter
 from lib.plotter import Plotter
 from lib.tcx_convert import write_tcx_to_csv
 from lib.fit_convert import write_fit_to_csv
+from config.settings import Template as Settings
 
 def main():
-
-    # read configuration file
-    config = configparser.ConfigParser()
-    file_dir = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(file_dir,"config","settings.ini")
-    config.read(config_path)
-    data_path = config["strava"]["data_path"]
+    S = Settings()
+    data_path = S.data_path
     activities_path = os.path.join(data_path,"activities")
+    print("path:",activities_path)
 
     # extract files if necessary
     print("Extracting gz activity files...")
@@ -47,7 +43,7 @@ def main():
 
     # plot maps
     print("Plotting maps...")
-    plot_maps(activities_path)
+    plot_maps(S)
 
 
 def gz_extract(directory):
@@ -139,21 +135,17 @@ def tcx_to_csv(dir):
         write_tcx_to_csv(filepath, outpath)
         os.remove(filepath)
 
-def plot_maps(dir):
+def plot_maps(S):
     """Map activity data into maps.
 
     Parameters
     ----------
-    dir : string
-        Directory path in which file should be extracted.
+    S : settings class instance
+        User settings class instance.
 
     """
-    p = Plotter(dir)
-    # p.stanford()
-    # p.bay_area()
-    # p.bay_area_laser_elevation_truth()
-    p.bay_area_laser_contours()
-    plt.show()
+    p = Plotter(S)
+    p.laser_contours()
 
 if __name__ == "__main__":
     main()

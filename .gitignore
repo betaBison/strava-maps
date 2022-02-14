@@ -3,4 +3,4 @@ __pycache__/
 tmp/
 plots/*
 !plots/.gitkeep
-data/topography_large.npy
+data/*large.npy
