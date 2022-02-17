@@ -13,6 +13,7 @@ class Template():
 
     def __init__(self):
         self.name = "your_name"
+        self.debug = False # whether to create extra debugging plots
         # absolute path of the export_XXXXXXXX/ directory you received by
         # exporting all of your Strava data in bulk.
         self.data_path = "/home/user/data/strava/export_12345678/"
@@ -26,6 +27,9 @@ class Template():
         self.figsize = (16, 20)
         self.blur = 1
         self.contour_min = 200
+        self.laser_linewidth = 0.072 # linewidth in points
+        self.contour_separate = 500. # distance for contours to separate
+        self.activity_separate = 50. # distance to separate activites into unique
         self.path_min = -np.inf
         # white list contours
         self.wlc = np.array([[37.86171298036722, -122.43017188317853], # angel island
