@@ -2,6 +2,9 @@
 
 Create personalized heatmaps.
 
+<img src="https://user-images.githubusercontent.com/23247972/206102623-8b0f27d8-bf66-4aa8-9b8c-7a93f6e93553.jpg" alt="strava map" height="400"/>
+
+
 ## Installation
 
 1. Clone the repository.
