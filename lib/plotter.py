@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import scipy.ndimage as ndimage
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -242,9 +243,8 @@ class Plotter():
         # path figures
         df_temp = copy.deepcopy(self.df)
 
-        for level in range(len(check_contours)-1,-1,-1):
-            for pp, path in enumerate(check_contours[level]):
-                print("level:",level,"path:",pp,"/",len(check_contours[level]))
+        for level in tqdm(range(len(check_contours)-1,-1,-1),desc="contour levels:",position=0):
+            for pp, path in enumerate(tqdm(check_contours[level],desc="paths",position=1,leave=False)):
                 if level % 2 == 1:
                     plot_level = int((level - 3)/2)
                 else:
@@ -252,7 +252,7 @@ class Plotter():
                 plot_level = max(0,plot_level)
 
                 df_cropped = []
-                for dd, df in enumerate(df_temp):
+                for dd, df in enumerate(tqdm(df_temp,desc="activities",position=2,leave=False)):
                     latlon = np.hstack((df["longitude"].to_numpy().reshape(-1,1),
                                         df["latitude"].to_numpy().reshape(-1,1)))
 
@@ -265,11 +265,24 @@ class Plotter():
                     if len(mask_idx) > 0:
                         longs = df.loc[mask_idx,"longitude"].to_numpy().reshape(-1,1)
                         lats = df.loc[mask_idx,"latitude"].to_numpy().reshape(-1,1)
-                        latlon2 = np.hstack((lats,longs))
-                        separated_latlon = self.separate(latlon2,
-                                            self.S.activity_separate)
-                        for sep_latlon in separated_latlon:
-                            activity_vertices[plot_level].append(np.flip(sep_latlon,axis=1))
+                        latlon = np.hstack((lats,longs))
+                        if len(activity_vertices[plot_level]) == 0:
+                            activity_vertices[plot_level].append(latlon)
+                        else:
+                            num_new = latlon.shape[0]
+                            threshold_vals = np.zeros((num_new,))
+                            for previous_points in activity_vertices[plot_level]:
+                                num_prev = previous_points.shape[0]
+                                prev_tile = np.tile(previous_points,(num_new,1))
+                                new_tile = np.repeat(latlon,num_prev,axis=0)
+
+                                new_dist = self.haversine_vectorized(prev_tile,new_tile).reshape(num_new,num_prev)
+                                sub_vals = np.where(new_dist > self.S.activity_redundancy, 0, 1)
+                                sub_vals = np.sum(sub_vals,axis=1)
+                                threshold_vals += sub_vals
+
+                            to_add = latlon[np.where(threshold_vals < 1)[0],:]
+                            activity_vertices[plot_level].append(to_add)
 
                     df.drop(labels=np.where(mask)[0], inplace=True)
                     df.reset_index(inplace=True, drop=True)
@@ -280,7 +293,7 @@ class Plotter():
 
         # lastly, check whether it's in the water
         for dd, df in enumerate(df_temp):
-            level = 0
+            plot_level = 0
             latlon = np.hstack((df["longitude"].to_numpy().reshape(-1,1),
                                 df["latitude"].to_numpy().reshape(-1,1)))
 
@@ -290,13 +303,36 @@ class Plotter():
             if len(mask_idx) > 0:
                 longs = df.loc[mask_idx,"longitude"].to_numpy().reshape(-1,1)
                 lats = df.loc[mask_idx,"latitude"].to_numpy().reshape(-1,1)
-                latlon2 = np.hstack((lats,longs))
-                separated_latlon = self.separate(latlon2,
-                                            self.S.activity_separate)
-                for sep_latlon in separated_latlon:
-                    activity_vertices[level].append(np.flip(sep_latlon,axis=1))
+                latlon = np.hstack((lats,longs))
+                if len(activity_vertices[plot_level]) == 0:
+                    activity_vertices[plot_level] = latlon
+                else:
+                    num_new = latlon.shape[0]
+                    threshold_vals = np.zeros((num_new,))
+                    for previous_points in activity_vertices[plot_level]:
+                        num_prev = previous_points.shape[0]
+                        prev_tile = np.tile(previous_points,(num_new,1))
+                        new_tile = np.repeat(latlon,num_prev,axis=0)
 
-        return activity_vertices
+                        new_dist = self.haversine_vectorized(prev_tile,new_tile).reshape(num_new,num_prev)
+                        sub_vals = np.where(new_dist > self.S.activity_redundancy, 0, 1)
+                        sub_vals = np.sum(sub_vals,axis=1)
+                        threshold_vals += sub_vals
+
+                    to_add = latlon[np.where(threshold_vals < 1)[0],:]
+                    activity_vertices[plot_level].append(to_add)
+
+        separated_vertices = []
+        for ll in range(self.num_levels):
+            separated_vertices.append([])
+            for activity in activity_vertices[ll]:
+                separated_latlon = self.separate(activity,
+                                    self.S.activity_separate)
+                for sep_latlon in separated_latlon:
+                    if len(sep_latlon) > 20:
+                        separated_vertices[ll].append(np.flip(sep_latlon,axis=1))
+
+        return separated_vertices
 
 
     def remove_empty_df(self, df, verbose = False):
@@ -317,6 +353,39 @@ class Plotter():
         old_length = len(df)
         for dd, df in enumerate(df):
             if len(df) > 0:
+                df_new.append(df)
+
+        new_length = len(df_new)
+        if verbose:
+            print("removed",old_length-new_length,"empty dataframes")
+
+        return df_new
+
+
+    def crop_df(self, df, verbose = False):
+        """Removes dataframe objects that are outside the fig bounds.
+
+        Parameters
+        ----------
+        df : list
+            List of dataframes
+
+        Returns
+        -------
+        df_new : list
+            List of dataframes with empty dataframes removed.
+
+        """
+        df_new = []
+        old_length = len(df)
+        for dd, df in enumerate(df):
+            latlon = np.hstack((df["longitude"].to_numpy().reshape(-1,1),
+                                df["latitude"].to_numpy().reshape(-1,1)))
+            back_mask = self.background_path.contains_points(latlon)
+            mask_idx = np.where(back_mask)[0]
+            # mask_idx = np.where(mask)[0]
+
+            if len(mask_idx) > 0:
                 df_new.append(df)
 
         new_length = len(df_new)
@@ -375,6 +444,9 @@ class Plotter():
         """Laser contours for the entire Bay area.
 
         """
+
+
+        self.df = self.crop_df(self.df)
 
         contour_paths, contour_vertices = self.get_contour_paths()
 
@@ -450,7 +522,7 @@ class Plotter():
 
 
 
-        for level_index in range(3):
+        for level_index in range(self.num_levels):
             """Add new paths."""
 
             hole_patches = []

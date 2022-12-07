@@ -17,7 +17,9 @@ from gpx_converter import Converter
 from lib.plotter import Plotter
 from lib.tcx_convert import write_tcx_to_csv
 from lib.fit_convert import write_fit_to_csv
-from config.settings import Template as Settings
+# from config.settings import Template as Settings
+from config.settings import Derek as Settings
+# from config.settings import Tristan as Settings
 
 def main():
     S = Settings()
