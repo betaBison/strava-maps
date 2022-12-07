@@ -25,6 +25,8 @@ def main():
     S = Settings()
     data_path = S.data_path
     activities_path = os.path.join(data_path,"activities")
+    activities_output = os.path.join(data_path,"activities_csv")
+    make_dir(activities_output)
     print("path:",activities_path)
 
     # extract files if necessary
@@ -33,15 +35,15 @@ def main():
 
     # convert gpx files to csv
     print("Converting gpx files to csv...")
-    gpx_to_csv(activities_path)
+    gpx_to_csv(activities_path, activities_output)
 
     # convert fit files to csv
     print("Converting fit files to csv...")
-    fit_to_csv(activities_path)
+    fit_to_csv(activities_path, activities_output)
 
     # convert tcx files to csv
     print("Converting tcx files to csv...")
-    tcx_to_csv(activities_path)
+    tcx_to_csv(activities_path, activities_output)
 
     # plot maps
     print("Plotting maps...")
@@ -70,17 +72,17 @@ def gz_extract(directory):
         filename = (os.path.basename(gz_name)).rsplit('.',1)[0] #get file name for file withi
         out_path = os.path.join(directory,filename)
         with gzip.open(gz_name,"rb") as f_in, open(out_path,"wb") as f_out:
-          shutil.copyfileobj(f_in, f_out)
-        os.remove(gz_name) # delete zipped file
+            shutil.copyfileobj(f_in, f_out)
 
-
-def gpx_to_csv(dir):
+def gpx_to_csv(dir, activities_output):
     """Convert gpx files to csv files.
 
     Parameters
     ----------
     dir : string
         Directory path in which file should be extracted.
+    activities_output : string
+        Directory path in which file should be saved.
 
     """
     full_list = sorted([item for item in os.listdir(dir) if item.endswith(".gpx")])
@@ -91,17 +93,18 @@ def gpx_to_csv(dir):
             print(int(100*float(ii)/len(full_list)),"% complete")
 
         filepath = os.path.join(dir, file)
-        outpath = os.path.join(dir, file.rsplit('.',1)[0] + ".csv")
+        outpath = os.path.join(activities_output, file.rsplit('.',1)[0] + ".csv")
         Converter(input_file=filepath).gpx_to_csv(output_file=outpath)
-        os.remove(filepath)
 
-def fit_to_csv(dir):
+def fit_to_csv(dir, activities_output):
     """Convert fit files to csv files.
 
     Parameters
     ----------
     dir : string
         Directory path in which file should be extracted.
+    activities_output : string
+        Directory path in which file should be saved.
 
     """
     full_list = sorted([item for item in os.listdir(dir) if item.endswith(".fit")])
@@ -111,19 +114,20 @@ def fit_to_csv(dir):
         if ii % percent10 == 0:
             print(int(100*float(ii)/len(full_list)),"% complete")
         filepath = os.path.join(dir, file)
-        outpath = os.path.join(dir, file.rsplit('.',1)[0] + ".csv")
+        outpath = os.path.join(activities_output, file.rsplit('.',1)[0] + ".csv")
         fitfile = fitparse.FitFile(filepath,
             data_processor=fitparse.StandardUnitsDataProcessor())
         write_fit_to_csv(fitfile,output_file=outpath)
-        os.remove(filepath)
 
-def tcx_to_csv(dir):
+def tcx_to_csv(dir, activities_output):
     """Convert tcx files to csv files.
 
     Parameters
     ----------
     dir : string
         Directory path in which file should be extracted.
+    activities_output : string
+        Directory path in which file should be saved.
 
     """
     full_list = sorted([item for item in os.listdir(dir) if item.endswith(".tcx")])
@@ -133,9 +137,8 @@ def tcx_to_csv(dir):
         if ii % percent10 == 0:
             print(int(100*float(ii)/len(full_list)),"% complete")
         filepath = os.path.join(dir, file)
-        outpath = os.path.join(dir, file.rsplit('.',1)[0] + ".csv")
+        outpath = os.path.join(activities_output, file.rsplit('.',1)[0] + ".csv")
         write_tcx_to_csv(filepath, outpath)
-        os.remove(filepath)
 
 def plot_maps(S):
     """Map activity data into maps.
@@ -148,6 +151,21 @@ def plot_maps(S):
     """
     p = Plotter(S)
     p.laser_contours()
+
+def make_dir(directory): # pragma: no cover
+    """Create a file directory if it doesn't yet exist.
+    Parameters
+    ----------
+    directory : string
+        Filepath of directory to create if it does not exist.
+    """
+
+    # create directory if it doesn't yet exist
+    if not os.path.isdir(directory):
+        try:
+            os.makedirs(directory)
+        except OSError as error:
+            raise OSError("Unable to create directory " + directory) from error
 
 if __name__ == "__main__":
     main()

@@ -75,17 +75,17 @@ class Derek():
     def __init__(self):
         self.name = "derek"
         self.debug = True
-        self.data_path = "/home/derek/datasets/strava/export_20221130/"
+        self.data_path = "/home/derek/datasets/strava/export_20221207/"
         self.topo_name = "SF_bay_topo_medium.npy"
         self.topo_xlim = (-124.000555556493, -120.99944444380549)
         self.topo_ylim = (35.999444443906840, 39.0005555565946)
-        self.levels = [-np.inf, 2., 150., 300., 450., np.inf]
+        self.levels = [-np.inf, 0.8, 100., 200., 450., np.inf]
         self.colors = ["#BDD1E8","#6c5a47","#865c3c","#c08e5f","#facba0"]
-        self.xlim = [-122.78779982641429,-121.67751846782933]
-        self.ylim = [36.94154503938612, 38.04094280129413]
-        self.figsize = (16, 20)
-        self.blur = 0.1
-        self.contour_min = 110
+        self.xlim = [-122.80097614024545,-121.84670925252182]
+        self.ylim = [36.93368535336329, 38.11050471822282]
+        self.figsize = (23.45, 35.45)
+        self.blur = 0.75
+        self.contour_min = 120
         self.laser_linewidth = 0.072 # linewidth in points
         self.contour_separate = 500. # distance for contours to separate
         self.activity_separate = 300. # distance to separate activites into unique

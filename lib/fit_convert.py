@@ -18,14 +18,13 @@ import fitparse
 allowed_fields = ['timestamp','position_lat','position_long', 'distance',
 'enhanced_altitude', 'altitude','enhanced_speed',
                  'speed', 'heart_rate','cadence','fractional_cadence']
-required_fields = ['timestamp', 'position_lat', 'position_long', 'altitude']
+required_fields = ['timestamp', 'position_lat', 'position_long']
 label_names = ["time", "latitude", "longitude", "altitude"]
 
 UTC = pytz.UTC
 
 def main():
-    fitfile = fitparse.FitFile("XXX.fit",
-        data_processor=fitparse.StandardUnitsDataProcessor())
+    fitfile = fitparse.FitFile("XXX.fit")
 
     print('converting')
     write_fit_to_csv(fitfile)
@@ -44,39 +43,41 @@ def write_fit_to_csv(fitfile, output_file='test_output.csv'):
 
     """
 
-
-
-    messages = fitfile.messages
-    data = []
-    for m in messages:
-        skip=False
-        if not hasattr(m, 'fields'):
-            continue
-        fields = m.fields
-        #check for important data types
+    csv_data = []
+    for rr, record in enumerate(fitfile.get_messages("record")):
+        # Records can contain multiple pieces of data (ex: timestamp, latitude, longitude, etc)
         mdata = {}
-        for field in fields:
-            if field.name in allowed_fields:
-                if field.value == None:
-                    skip=True
-                elif field.name=='timestamp':
-                    mdata[field.name] = UTC.localize(field.value).astimezone(UTC)
-                elif field.name=="position_lat" or field.name == "position_long":
-                    mdata[field.name] = round(field.value, 6)
+        for data in record:
+            if data.name in required_fields:
+                if data.value is None:
+                    continue
+                if data.name=='timestamp':
+                    timestamp = UTC.localize(data.value).astimezone(UTC)
+                    mdata[data.name] = timestamp.strftime("%Y:%m:%d:%H:%M:%S")
+                elif data.name in ("position_lat", "position_long"):
+                    if data.units == "semicircles":
+                        degrees = float(data.value) * (180. / 2**31)
+                        mdata[data.name] = round(degrees, 6)
+                    elif data.units == "deg":
+                        mdata[data.name] = data.value
+                    else:
+                        print("unknown lat/long units:",data.units)
                 else:
-                    mdata[field.name] = field.value
-        for rf in required_fields:
-            if rf not in mdata:
-                skip=True
-        if not skip:
-            data.append(mdata)
+                    mdata[data.name] = data.value
+
+        write_data = True
+        for key in required_fields:
+            if key not in mdata:
+                write_data = False
+        if write_data:
+            csv_data.append(mdata)
+
     #write to csv
     with open(output_file, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(label_names)
-        for entry in data:
+        for entry in csv_data:
             writer.writerow([ str(entry.get(k, '')) for k in required_fields])
-    # print('wrote %s' % output_file)
 
 if __name__=='__main__':
     main()

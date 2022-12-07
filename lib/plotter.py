@@ -36,7 +36,7 @@ class Plotter():
 
         self.S = S
         data_path = self.S.data_path
-        activities_path = os.path.join(data_path,"activities")
+        activities_path = os.path.join(data_path,"activities_csv")
 
         file_dir = os.path.dirname(os.path.realpath(__file__))
         self.repo_dir = os.path.join(file_dir, "..")
