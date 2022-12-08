@@ -445,7 +445,6 @@ class Plotter():
 
         """
 
-
         self.df = self.crop_df(self.df)
 
         contour_paths, contour_vertices = self.get_contour_paths()
@@ -568,6 +567,7 @@ class Plotter():
             self.save_and_close(proof_debug,
                             "debug-contour-proof", "png")
 
+        self.plot_bridges()
 
     def haversine(self, coord1, coord2):
         """
@@ -660,3 +660,26 @@ class Plotter():
             np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2)**2
 
         return 2*R*np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+
+
+    def plot_bridges(self):
+        """Plot the bridge gpx files.
+
+        """
+        data_path = self.S.data_path
+        activities_path = os.path.join(data_path,"activities_csv")
+
+        bridge_fig = plt.figure(figsize=self.S.figsize)
+        bridge_ax = plt.subplot(1,1,1)
+        background = patches.PathPatch(self.background_path, edgecolor='k',
+        facecolor=self.S.colors[0], lw=2)
+        bridge_ax.add_patch(background)
+
+        print("inputing csv data")
+        for file in ["san_mateo.csv","bay_bridge.csv"]:
+            filepath = os.path.join(activities_path, file)
+            new_df = pd.read_csv(filepath)
+            bridge_ax.plot(new_df["longitude"], new_df["latitude"], c="k",
+                          linewidth = 1.0)
+
+        self.save_and_close(bridge_fig,"bridges", "svg")
