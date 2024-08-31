@@ -86,7 +86,7 @@ class Derek():
         self.figsize = (23.45, 35.45)
         self.blur = 0.75
         self.contour_min = 120
-        self.laser_linewidth = 0.072 # linewidth in points
+        self.laser_linewidth = 0.1 # linewidth in points
         self.contour_separate = 500. # distance for contours to separate
         self.activity_separate = 300. # distance to separate activites into unique
         self.activity_redundancy = 25. # meters threshold beyond which point will be added
